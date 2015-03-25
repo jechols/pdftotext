@@ -363,7 +363,8 @@ int main(int argc, char *argv[]) {
         for (flow = textPage->getFlows(); flow; flow = flow->getNext()) {
           fprintf(f, "    <flow>\n");
           for (blk = flow->getBlocks(); blk; blk = blk->getNext()) {
-            fprintf(f, "      <block>\n");
+            blk->getBBox(&xMin, &yMin, &xMax, &yMax);
+            fprintf(f, "      <block xMin=\"%f\" yMin=\"%f\" xMax=\"%f\" yMax=\"%f\">\n", xMin, yMin, xMax, yMax);
             for (line = blk->getLines(); line; line = line->getNext()) {
               fprintf(f, "        <line>\n");
               for (word = line->getWords(); word; word = word->getNext()) {
