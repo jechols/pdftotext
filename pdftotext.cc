@@ -348,7 +348,7 @@ int main(int argc, char *argv[]) {
     }
 
     if (textOut->isOk()) {
-      double xMinA, yMinA, xMaxA, yMaxA;
+      double xMin, yMin, xMax, yMax;
       TextPage *textPage;
       TextFlow *flow;
       TextBlock *blk;
@@ -367,9 +367,9 @@ int main(int argc, char *argv[]) {
             for (line = blk->getLines(); line; line = line->getNext()) {
               fprintf(f, "        <line>\n");
               for (word = line->getWords(); word; word = word->getNext()) {
-                word->getBBox(&xMinA, &yMinA, &xMaxA, &yMaxA);
+                word->getBBox(&xMin, &yMin, &xMax, &yMax);
                 const std::string myString = myXmlTokenReplace(word->getText()->getCString());
-                fprintf(f,"          <word xMin=\"%f\" yMin=\"%f\" xMax=\"%f\" yMax=\"%f\">%s</word>\n", xMinA, yMinA, xMaxA, yMaxA, myString.c_str());
+                fprintf(f,"          <word xMin=\"%f\" yMin=\"%f\" xMax=\"%f\" yMax=\"%f\">%s</word>\n", xMin, yMin, xMax, yMax, myString.c_str());
               }
               fprintf(f, "        </line>\n");
             }
