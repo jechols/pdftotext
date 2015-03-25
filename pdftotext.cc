@@ -54,6 +54,7 @@
 #include "PDFDocEncoding.h"
 #include "Error.h"
 #include <string>
+#include <sstream>
 
 static void printInfoString(FILE *f, Dict *infoDict, const char *key,
 			    const char *text1, const char *text2, UnicodeMap *uMap);
@@ -466,7 +467,31 @@ static void printInfoDate(FILE *f, Dict *infoDict, const char *key, const char *
   obj.free();
 }
 
+void printLine(FILE *f, TextLine *line) {
+  double xMin, yMin, xMax, yMax;
+  double lineXMin = 0, lineYMin = 0, lineXMax = 0, lineYMax = 0;
+  TextWord *word;
+  std::stringstream wordXML;
+  char buf[5000];
 
+  for (word = line->getWords(); word; word = word->getNext()) {
+    word->getBBox(&xMin, &yMin, &xMax, &yMax);
+
+    if (lineXMin == 0 || lineXMin > xMin) lineXMin = xMin;
+    if (lineYMin == 0 || lineYMin > yMin) lineYMin = yMin;
+    if (lineXMax < xMax) lineXMax = xMax;
+    if (lineYMax < yMax) lineYMax = yMax;
+
+    const std::string myString = myXmlTokenReplace(word->getText()->getCString());
+    sprintf(buf, "          <word xMin=\"%f\" yMin=\"%f\" xMax=\"%f\" yMax=\"%f\">%s</word>\n",
+            xMin, yMin, xMax, yMax, myString.c_str());
+    wordXML << buf;
+  }
+  fprintf(f, "        <line xMin=\"%f\" yMin=\"%f\" xMax=\"%f\" yMax=\"%f\">\n",
+          lineXMin, lineYMin, lineXMax, lineYMax);
+  fprintf(f, wordXML.str().c_str());
+  fprintf(f, "        </line>\n");
+}
 
 void printDocBBox(FILE *f, PDFDoc *doc, TextOutputDev *textOut, int first, int last) {
   double xMin, yMin, xMax, yMax;
@@ -474,7 +499,6 @@ void printDocBBox(FILE *f, PDFDoc *doc, TextOutputDev *textOut, int first, int l
   TextFlow *flow;
   TextBlock *blk;
   TextLine *line;
-  TextWord *word;
 
   fprintf(f, "<doc>\n");
   for (int page = first; page <= last; ++page) {
@@ -487,13 +511,7 @@ void printDocBBox(FILE *f, PDFDoc *doc, TextOutputDev *textOut, int first, int l
         blk->getBBox(&xMin, &yMin, &xMax, &yMax);
         fprintf(f, "      <block xMin=\"%f\" yMin=\"%f\" xMax=\"%f\" yMax=\"%f\">\n", xMin, yMin, xMax, yMax);
         for (line = blk->getLines(); line; line = line->getNext()) {
-          fprintf(f, "        <line>\n");
-          for (word = line->getWords(); word; word = word->getNext()) {
-            word->getBBox(&xMin, &yMin, &xMax, &yMax);
-            const std::string myString = myXmlTokenReplace(word->getText()->getCString());
-            fprintf(f,"          <word xMin=\"%f\" yMin=\"%f\" xMax=\"%f\" yMax=\"%f\">%s</word>\n", xMin, yMin, xMax, yMax, myString.c_str());
-          }
-          fprintf(f, "        </line>\n");
+          printLine(f, line);
         }
         fprintf(f, "      </block>\n");
       }
