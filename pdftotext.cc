@@ -58,6 +58,7 @@
 static void printInfoString(FILE *f, Dict *infoDict, const char *key,
 			    const char *text1, const char *text2, UnicodeMap *uMap);
 static void printInfoDate(FILE *f, Dict *infoDict, const char *key, const char *fmt);
+void printDocBBox(FILE *f, PDFDoc *doc, TextOutputDev *textOut, int first, int last);
 
 static int firstPage = 1;
 static int lastPage = 0;
@@ -348,40 +349,7 @@ int main(int argc, char *argv[]) {
     }
 
     if (textOut->isOk()) {
-      double xMin, yMin, xMax, yMax;
-      TextPage *textPage;
-      TextFlow *flow;
-      TextBlock *blk;
-      TextLine *line;
-      TextWord *word;
-
-      fprintf(f, "<doc>\n");
-      for (int page = firstPage; page <= lastPage; ++page) {
-        fprintf(f, "  <page width=\"%f\" height=\"%f\">\n",doc->getPageMediaWidth(page), doc->getPageMediaHeight(page));
-        doc->displayPage(textOut, page, resolution, resolution, 0, gTrue, gFalse, gFalse);
-        textPage = textOut->takeText();
-        for (flow = textPage->getFlows(); flow; flow = flow->getNext()) {
-          fprintf(f, "    <flow>\n");
-          for (blk = flow->getBlocks(); blk; blk = blk->getNext()) {
-            blk->getBBox(&xMin, &yMin, &xMax, &yMax);
-            fprintf(f, "      <block xMin=\"%f\" yMin=\"%f\" xMax=\"%f\" yMax=\"%f\">\n", xMin, yMin, xMax, yMax);
-            for (line = blk->getLines(); line; line = line->getNext()) {
-              fprintf(f, "        <line>\n");
-              for (word = line->getWords(); word; word = word->getNext()) {
-                word->getBBox(&xMin, &yMin, &xMax, &yMax);
-                const std::string myString = myXmlTokenReplace(word->getText()->getCString());
-                fprintf(f,"          <word xMin=\"%f\" yMin=\"%f\" xMax=\"%f\" yMax=\"%f\">%s</word>\n", xMin, yMin, xMax, yMax, myString.c_str());
-              }
-              fprintf(f, "        </line>\n");
-            }
-            fprintf(f, "      </block>\n");
-          }
-          fprintf(f, "    </flow>\n");
-        }
-        fprintf(f, "  </page>\n");
-        textPage->decRefCnt();
-      }
-      fprintf(f, "</doc>\n");
+      printDocBBox(f, doc, textOut, firstPage, lastPage);
     }
     fclose(f);
   } else {
@@ -496,4 +464,43 @@ static void printInfoDate(FILE *f, Dict *infoDict, const char *key, const char *
     fprintf(f, fmt, s);
   }
   obj.free();
+}
+
+
+
+void printDocBBox(FILE *f, PDFDoc *doc, TextOutputDev *textOut, int first, int last) {
+  double xMin, yMin, xMax, yMax;
+  TextPage *textPage;
+  TextFlow *flow;
+  TextBlock *blk;
+  TextLine *line;
+  TextWord *word;
+
+  fprintf(f, "<doc>\n");
+  for (int page = first; page <= last; ++page) {
+    fprintf(f, "  <page width=\"%f\" height=\"%f\">\n",doc->getPageMediaWidth(page), doc->getPageMediaHeight(page));
+    doc->displayPage(textOut, page, resolution, resolution, 0, gTrue, gFalse, gFalse);
+    textPage = textOut->takeText();
+    for (flow = textPage->getFlows(); flow; flow = flow->getNext()) {
+      fprintf(f, "    <flow>\n");
+      for (blk = flow->getBlocks(); blk; blk = blk->getNext()) {
+        blk->getBBox(&xMin, &yMin, &xMax, &yMax);
+        fprintf(f, "      <block xMin=\"%f\" yMin=\"%f\" xMax=\"%f\" yMax=\"%f\">\n", xMin, yMin, xMax, yMax);
+        for (line = blk->getLines(); line; line = line->getNext()) {
+          fprintf(f, "        <line>\n");
+          for (word = line->getWords(); word; word = word->getNext()) {
+            word->getBBox(&xMin, &yMin, &xMax, &yMax);
+            const std::string myString = myXmlTokenReplace(word->getText()->getCString());
+            fprintf(f,"          <word xMin=\"%f\" yMin=\"%f\" xMax=\"%f\" yMax=\"%f\">%s</word>\n", xMin, yMin, xMax, yMax, myString.c_str());
+          }
+          fprintf(f, "        </line>\n");
+        }
+        fprintf(f, "      </block>\n");
+      }
+      fprintf(f, "    </flow>\n");
+    }
+    fprintf(f, "  </page>\n");
+    textPage->decRefCnt();
+  }
+  fprintf(f, "</doc>\n");
 }
