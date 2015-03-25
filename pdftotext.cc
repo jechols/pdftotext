@@ -348,25 +348,37 @@ int main(int argc, char *argv[]) {
     }
 
     if (textOut->isOk()) {
+      double xMinA, yMinA, xMaxA, yMaxA;
+      TextPage *textPage;
+      TextFlow *flow;
+      TextBlock *blk;
+      TextLine *line;
+      TextWord *word;
+
       fprintf(f, "<doc>\n");
       for (int page = firstPage; page <= lastPage; ++page) {
         fprintf(f, "  <page width=\"%f\" height=\"%f\">\n",doc->getPageMediaWidth(page), doc->getPageMediaHeight(page));
         doc->displayPage(textOut, page, resolution, resolution, 0, gTrue, gFalse, gFalse);
-        TextWordList *wordlist = textOut->makeWordList();
-        const int word_length = wordlist != NULL ? wordlist->getLength() : 0;
-        TextWord *word;
-        double xMinA, yMinA, xMaxA, yMaxA;
-        if (word_length == 0)
-          fprintf(stderr, "no word list\n");
-
-        for (int i = 0; i < word_length; ++i) {
-          word = wordlist->get(i);
-          word->getBBox(&xMinA, &yMinA, &xMaxA, &yMaxA);
-          const std::string myString = myXmlTokenReplace(word->getText()->getCString());
-          fprintf(f,"    <word xMin=\"%f\" yMin=\"%f\" xMax=\"%f\" yMax=\"%f\">%s</word>\n", xMinA, yMinA, xMaxA, yMaxA, myString.c_str());
+        textPage = textOut->takeText();
+        for (flow = textPage->getFlows(); flow; flow = flow->getNext()) {
+          fprintf(f, "    <flow>\n");
+          for (blk = flow->getBlocks(); blk; blk = blk->getNext()) {
+            fprintf(f, "      <block>\n");
+            for (line = blk->getLines(); line; line = line->getNext()) {
+              fprintf(f, "        <line>\n");
+              for (word = line->getWords(); word; word = word->getNext()) {
+                word->getBBox(&xMinA, &yMinA, &xMaxA, &yMaxA);
+                const std::string myString = myXmlTokenReplace(word->getText()->getCString());
+                fprintf(f,"          <word xMin=\"%f\" yMin=\"%f\" xMax=\"%f\" yMax=\"%f\">%s</word>\n", xMinA, yMinA, xMaxA, yMaxA, myString.c_str());
+              }
+              fprintf(f, "        </line>\n");
+            }
+            fprintf(f, "      </block>\n");
+          }
+          fprintf(f, "    </flow>\n");
         }
         fprintf(f, "  </page>\n");
-        delete wordlist;
+        textPage->decRefCnt();
       }
       fprintf(f, "</doc>\n");
     }
