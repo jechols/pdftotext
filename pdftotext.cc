@@ -472,7 +472,6 @@ void printLine(FILE *f, TextLine *line) {
   double lineXMin = 0, lineYMin = 0, lineXMax = 0, lineYMax = 0;
   TextWord *word;
   std::stringstream wordXML;
-  char buf[5000];
 
   for (word = line->getWords(); word; word = word->getNext()) {
     word->getBBox(&xMin, &yMin, &xMax, &yMax);
@@ -483,9 +482,8 @@ void printLine(FILE *f, TextLine *line) {
     if (lineYMax < yMax) lineYMax = yMax;
 
     const std::string myString = myXmlTokenReplace(word->getText()->getCString());
-    sprintf(buf, "          <word xMin=\"%f\" yMin=\"%f\" xMax=\"%f\" yMax=\"%f\">%s</word>\n",
-            xMin, yMin, xMax, yMax, myString.c_str());
-    wordXML << buf;
+    wordXML << "          <word xMin=\"" << xMin << "\" yMin=\"" << yMin << "\" xMax=\"" <<
+            xMax << "\" yMax=\"" << yMax << "\">" << myString << "</word>\n";
   }
   fprintf(f, "        <line xMin=\"%f\" yMin=\"%f\" xMax=\"%f\" yMax=\"%f\">\n",
           lineXMin, lineYMin, lineXMax, lineYMax);
