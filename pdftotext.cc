@@ -60,6 +60,7 @@ static void printInfoString(FILE *f, Dict *infoDict, const char *key,
 			    const char *text1, const char *text2, UnicodeMap *uMap);
 static void printInfoDate(FILE *f, Dict *infoDict, const char *key, const char *fmt);
 void printDocBBox(FILE *f, PDFDoc *doc, TextOutputDev *textOut, int first, int last);
+void printWordBBox(FILE *f, PDFDoc *doc, TextOutputDev *textOut, int first, int last);
 
 static int firstPage = 1;
 static int lastPage = 0;
@@ -69,6 +70,7 @@ static int y = 0;
 static int w = 0;
 static int h = 0;
 static GBool bbox = gFalse;
+static GBool bboxLayout = gFalse;
 static GBool physLayout = gFalse;
 static double fixedPitch = 0;
 static GBool rawOrder = gFalse;
@@ -116,6 +118,8 @@ static const ArgDesc argDesc[] = {
    "don't insert page breaks between pages"},
   {"-bbox", argFlag,     &bbox,  0,
    "output bounding box for each word and page size to html.  Sets -htmlmeta"},
+  {"-bbox-layout", argFlag,     &bboxLayout,  0,
+   "like -bbox but with extra layout bounding box data.  Sets -htmlmeta"},
   {"-opw",     argString,   ownerPassword,  sizeof(ownerPassword),
    "owner password (for encrypted files)"},
   {"-upw",     argString,   userPassword,   sizeof(userPassword),
@@ -176,6 +180,9 @@ int main(int argc, char *argv[]) {
 
   // parse args
   ok = parseArgs(argDesc, &argc, argv);
+  if (bboxLayout) {
+    bbox = gTrue;
+  }
   if (bbox) {
     htmlMeta = gTrue;
   }
@@ -350,7 +357,12 @@ int main(int argc, char *argv[]) {
     }
 
     if (textOut->isOk()) {
-      printDocBBox(f, doc, textOut, firstPage, lastPage);
+      if (bboxLayout) {
+        printDocBBox(f, doc, textOut, firstPage, lastPage);
+      }
+      else {
+        printWordBBox(f, doc, textOut, firstPage, lastPage);
+      }
     }
     fclose(f);
   } else {
@@ -517,6 +529,30 @@ void printDocBBox(FILE *f, PDFDoc *doc, TextOutputDev *textOut, int first, int l
     }
     fprintf(f, "  </page>\n");
     textPage->decRefCnt();
+  }
+  fprintf(f, "</doc>\n");
+}
+
+void printWordBBox(FILE *f, PDFDoc *doc, TextOutputDev *textOut, int first, int last) {
+  fprintf(f, "<doc>\n");
+  for (int page = first; page <= last; ++page) {
+    fprintf(f, "  <page width=\"%f\" height=\"%f\">\n",doc->getPageMediaWidth(page), doc->getPageMediaHeight(page));
+    doc->displayPage(textOut, page, resolution, resolution, 0, gTrue, gFalse, gFalse);
+    TextWordList *wordlist = textOut->makeWordList();
+    const int word_length = wordlist != NULL ? wordlist->getLength() : 0;
+    TextWord *word;
+    double xMinA, yMinA, xMaxA, yMaxA;
+    if (word_length == 0)
+      fprintf(stderr, "no word list\n");
+
+    for (int i = 0; i < word_length; ++i) {
+      word = wordlist->get(i);
+      word->getBBox(&xMinA, &yMinA, &xMaxA, &yMaxA);
+      const std::string myString = myXmlTokenReplace(word->getText()->getCString());
+      fprintf(f,"    <word xMin=\"%f\" yMin=\"%f\" xMax=\"%f\" yMax=\"%f\">%s</word>\n", xMinA, yMinA, xMaxA, yMaxA, myString.c_str());
+    }
+    fprintf(f, "  </page>\n");
+    delete wordlist;
   }
   fprintf(f, "</doc>\n");
 }
