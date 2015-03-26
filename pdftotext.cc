@@ -55,6 +55,7 @@
 #include "Error.h"
 #include <string>
 #include <sstream>
+#include <iomanip>
 
 static void printInfoString(FILE *f, Dict *infoDict, const char *key,
 			    const char *text1, const char *text2, UnicodeMap *uMap);
@@ -484,6 +485,7 @@ void printLine(FILE *f, TextLine *line) {
   double lineXMin = 0, lineYMin = 0, lineXMax = 0, lineYMax = 0;
   TextWord *word;
   std::stringstream wordXML;
+  wordXML << std::fixed << std::setprecision(6);
 
   for (word = line->getWords(); word; word = word->getNext()) {
     word->getBBox(&xMin, &yMin, &xMax, &yMax);
