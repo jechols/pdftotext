@@ -188,7 +188,7 @@ int main(int argc, char *argv[]) {
     htmlMeta = gTrue;
   }
   if (!ok || (argc < 2 && !printEnc) || argc > 3 || printVersion || printHelp) {
-    fprintf(stderr, "pdftotext version %s-uobboxhack\n", PACKAGE_VERSION);
+    fprintf(stderr, "pdftotext version %s\n", PACKAGE_VERSION);
     fprintf(stderr, "%s\n", popplerCopyright);
     fprintf(stderr, "%s\n", xpdfCopyright);
     if (!printVersion) {
